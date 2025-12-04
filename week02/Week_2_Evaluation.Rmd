@@ -17,7 +17,8 @@ library(tidyverse)
 library(ggplot2)
 
 # set this to your path
-setwd(r"(C:\Users\Valen\Documents\Git-Repositorys\TUHH\Applied Statistics\week02)")
+#setwd(r"(C:\Users\Valen\Documents\Git-Repositorys\TUHH\Applied Statistics\week02)")
+setwd(r"(C:\AsAd\Python_Related\Applied_Statistics\AppliedStatistics\week02)")
 
 experiment_data <- read.table("Week_2_Experiment.csv", header=TRUE)
 
@@ -35,7 +36,14 @@ colnames(freq_real_df) <- c("size", "count")
 
 freq_real_df$size <- as.numeric(as.character(freq_real_df$size))
 
-ggplot(freq_real_df, aes(x=size, y=count)) +
+freq_real_df <- freq_real_df |>
+  mutate(
+    size = as.numeric(as.character(size)),
+    count = as.numeric(as.character(count))
+  ) |>
+  mutate(percent = count/sum(count)*100)
+
+plot_real <- ggplot(freq_real_df, aes(x=size, y=percent)) +
   geom_col(width = 0.2) +
   geom_point(size = 3, color = "red") +
   geom_smooth(
@@ -50,9 +58,11 @@ ggplot(freq_real_df, aes(x=size, y=count)) +
   labs(
     title = "Real Data from Drawn Pieces",
     x = "Size of drawn piece",
-    y = "Number of times the size was drawn"
+    y = "% of the size being drawn"
   ) +
   theme_minimal() 
+
+ggsave("Real_Experiment.png", plot = plot_real, width = 6, height = 4)
   
 ```
 ### Mean Value and Variance and skweness etc.
@@ -67,7 +77,7 @@ outcomes <- c(1, 2, 4, 8)
 P_uniform<- c(0.25, 0.25, 0.25, 0.25)
 
 set.seed(4)
-sizes_sim <- sample(outcomes, size=62, replace=TRUE, prob=P_uniform)
+sizes_sim <- sample(outcomes, size=10000, replace=TRUE, prob=P_uniform)
 
 freq_sim <- table(factor(sizes_sim, levels=outcomes))
 freq_sim_df <- as.data.frame(freq_sim)
@@ -80,7 +90,7 @@ freq_sim_df <- freq_sim_df |>
   ) |>
   mutate(percent = count/sum(count)*100)
 
-ggplot(freq_sim_df, aes(x=size, y=percent))+
+plot_sim <- ggplot(freq_sim_df, aes(x=size, y=percent))+
   geom_col(width = 0.2) +
   geom_point(size = 3, color = "red") +
   geom_smooth(
@@ -93,11 +103,12 @@ ggplot(freq_sim_df, aes(x=size, y=percent))+
     breaks = 1:8
   ) +
   labs(
-    title = "Simulated Data from Drawn Pieces, N = 62",
+    title = "Simulated Data from Drawn Pieces, N = 10000",
     x = "Size of drawn piece",
     y = "Percent of times the size was drawn"
   ) +
   theme_minimal() 
+ggsave("Simulated_Experiment.png", plot = plot_sim, width = 6, height = 4)
 ```
 ### Expected Value and Variance
 ```{r}
@@ -139,7 +150,7 @@ expected_draws_proportional <- N * P_proportional
 
 
 
-ggplot(freq_real_df, ) +
+plot_compare <- ggplot(freq_real_df, ) +
   geom_point(aes(x = size, y = count, color = "Observed"), size = 3) + 
   geom_point(aes(x = size, y = expected_draws_proportional, color = "Proportional Model"),
              size = 3) +
@@ -157,6 +168,7 @@ ggplot(freq_real_df, ) +
                                 "Uniform Model" = "blue",
                                 "Proportional Model" = "red")) +
   theme_minimal()
+ggsave("Observed_vs_Models.png", plot = plot_compare, width = 6, height = 4)
 ```
 
 ## Perform Chi Squared Test to evaluate goodness of fit

@@ -1,0 +1,308 @@
+---
+title: "Fitting A Linear Model"
+output: html_notebook
+---
+
+
+## Setup
+```{r}
+library(tidyverse)
+library(patchwork) 
+library(ggplot2)
+
+# Change this to your week 4 folder
+setwd(r"(C:/Users/Valentin/Documents/GIT_REPS/TUHH/Applied-Statistics/week04)")
+
+```
+
+Note that when saving images, do it with this ratio to fit perfectly into the TUHH template:
+ 
+width = 8.74, height = 5.11
+
+## Import Data
+```{r}
+video_game_data <- read.csv("Video_Games_Sales_as_at_22_Dec_2016.csv")
+
+clean_data <- video_game_data |>
+  select(User_Score, Critic_Score, Year_of_Release, Global_Sales) |>
+  mutate(User_Score = as.numeric(User_Score)*10) |>
+  mutate(Year_of_Release = as.numeric(Year_of_Release)) |>
+  select(where(is.numeric)) |>
+  drop_na()
+
+# Row index of the game with max sales
+max_index <- which.max(clean_data$Global_Sales)
+
+# View the entire row
+clean_data[max_index, ]
+
+
+print(length(clean_data$User_Score))
+```
+
+## Data Visualization
+
+filtering N/A:
+
+\begin{align*}
+N = 16719 \\
+N_\text{filtered} = 6894
+\end{align*}
+
+### User and Critic Score
+
+```{r}
+
+long <- clean_data %>%
+  select(Year_of_Release, Global_Sales, User_Score, Critic_Score) %>%
+  pivot_longer(cols = c(User_Score, Critic_Score),
+               names_to = "Type",
+               values_to = "Score")
+
+distribution_plot <- ggplot(long, aes(x = Score, fill = Type)) +
+  geom_density(alpha = 0.5) +
+  scale_x_continuous(limits = c(0, 100)) +
+  labs(
+    x = "Score",
+    y = "Density",
+    title = "Distribution of User vs Critic Scores"
+  ) +
+  scale_fill_manual(values = c("User_Score" = "skyblue", "Critic_Score" = "orange")) +
+  theme_minimal()
+
+ggsave("plots/distribution_plot.png", distribution_plot, width = 8.74, height = 5.11, dpi = 300)
+
+distribution_plot
+
+
+par(mfrow = c(1, 2))
+
+qqnorm(clean_data$User_Score, main = "QQ Plot: User Score", ylim = c(0, 100))
+qqline(clean_data$User_Score, col = "red")
+
+qqnorm(clean_data$Critic_Score, main = "QQ Plot: Critic Score", ylim = c(0, 100))
+qqline(clean_data$Critic_Score, col = "red")
+
+width_px  <- 8.74 * 300
+height_px <- 5.11 * 300  
+
+dev.copy(png, "plots/QQplots_User_Critic.png", width = width_px, height = height_px, res = 300)
+dev.off()
+```
+
+## Year of Release and Global Sales
+```{r}
+
+sales_release_plot <- ggplot(clean_data, aes(x = Year_of_Release, y = Global_Sales)) +
+  geom_point(alpha = 0.3) +
+  labs(x = "Year of Release",
+       y = "Global Sales (millions)",
+       title = "Global Sales vs Year of Release") +
+  theme_minimal()
+
+
+ggsave("plots/sales_release_plot.png", sales_release_plot, width = 8.74, height = 5.11, dpi = 300)
+
+sales_release_plot
+```
+Incomplete List of Games, Most Games are not on there, such as the Pc version of Minecraft missing and the list only including games up to 2016
+The 2006 Outlier is Wii U Sports
+
+## Rating per Year and Sales
+```{r}
+
+# Compute average per year
+avg_year <- long %>%
+  group_by(Year_of_Release, Type) %>%
+  summarise(mean_score = mean(Score, na.rm = TRUE))
+
+
+# Filter only User_Score
+long_user <- long %>% filter(Type == "User_Score")
+avg_year_user <- avg_year %>% filter(Type == "User_Score")
+
+# Plot
+score_over_year_plot <- ggplot(avg_year_user, aes(x = Year_of_Release, y = mean_score)) +
+  # Background scatter
+  geom_point(data = long_user, aes(x = Year_of_Release, y = Score),
+             alpha = 0.2, size = 1, color = "grey") +
+  # Average line
+  geom_line(size = 1.2, color = "skyblue") +
+  geom_point(size = 2, color = "skyblue") +
+  labs(x = "Year of Release",
+       y = "Average User Score",
+       title = "Average User Scores Over Years") +
+  theme_minimal()
+
+
+ggsave("plots/score_over_year_plot.png", score_over_year_plot, width = 8.74, height = 5.11, dpi = 300)
+
+score_over_year_plot
+
+```
+
+
+
+
+
+## Model
+
+\[
+Y = \beta_1 \cdot X_1 \cdot \beta_2 \cdot X_2 + \beta_3 \cdot X_3 + \epsilon
+\]
+
+where
+
+\begin{align*}
+Y & : \text{User Score} \\
+X_1 & : \text{Critic Score} \\
+X_2 & : \text{Year of Release} \\
+X_3 & : \text{Global Sales}
+\end{align*}
+
+
+
+```{r}
+model <- lm(User_Score ~ ., data = clean_data)
+
+summary(model)
+
+
+# Dont know how relevant this is
+plot(model)
+```
+
+
+## ChatGPT Analysis
+
+This is the summary of a multiple linear regression where you model User_Score using all other variables in clean_data:
+
+User_Score
+∼
+Critic_Score
++
+Year_of_Release
++
+Global_Sales
+User_Score∼Critic_Score+Year_of_Release+Global_Sales
+
+I’ll break it down piece by piece and then interpret it in plain language.
+
+1️⃣ Model fit (big picture)
+R-squared = 0.3985
+
+About 40% of the variation in User_Score is explained by the three predictors.
+
+This is moderate explanatory power for real-world data.
+
+Adjusted R-squared = 0.3982
+
+Very close to R² → adding predictors is justified.
+
+F-statistic (p < 2.2e-16)
+
+The model as a whole is highly statistically significant
+
+At least one predictor meaningfully explains User_Score
+
+2️⃣ Residuals (errors)
+Min   -6.76
+1Q    -0.54
+Median 0.14
+3Q     0.72
+Max    3.89
+
+
+Errors are centered close to 0 → good
+
+Slight right skew (larger positive max)
+
+Typical prediction error ≈ ±1.1 User_Score points
+
+3️⃣ Coefficients (core interpretation)
+🔹 Intercept: 169.9
+(Intercept) = 169.9
+
+
+The predicted User_Score when:
+
+Critic_Score = 0
+
+Year_of_Release = 0
+
+Global_Sales = 0
+
+Not meaningful in practice, but necessary for the model.
+
+🔹 Critic_Score: +0.061
+Estimate = 0.061
+p < 2e-16
+
+
+📈 Interpretation:
+
+For every 1-point increase in Critic_Score,
+User_Score increases by ~0.06 points, holding other variables constant.
+
+Very strong and significant predictor.
+
+🔹 Year_of_Release: −0.083
+Estimate = -0.083
+p < 2e-16
+
+
+📉 Interpretation:
+
+Each additional year is associated with a 0.083 decrease in User_Score.
+
+Suggests older games have slightly higher user scores (possible nostalgia or selection bias).
+
+Statistically very strong.
+
+🔹 Global_Sales: −0.037
+Estimate = -0.037
+p = 1.46e-07
+
+
+📉 Interpretation:
+
+For each additional million units sold, User_Score drops by ~0.037 points.
+
+Small effect, but statistically significant.
+
+Could reflect popular games appealing to broader (not more critical) audiences.
+
+4️⃣ Statistical significance
+
+All predictors:
+
+Have very low p-values
+
+Are statistically significant at any conventional level
+
+But ⚠️:
+
+Statistical significance ≠ practical importance
+
+Critic_Score matters much more than Global_Sales.
+
+5️⃣ What this model says in plain English
+
+User ratings are strongly aligned with critic ratings.
+Older games tend to receive slightly higher user scores.
+Higher sales are weakly associated with lower user scores.
+The model explains about 40% of user score variability.
+
+6️⃣ Important caveats
+
+Correlation ≠ causation
+
+Year_of_Release likely captures:
+
+changes in rating culture
+
+survivorship bias
+
+Global_Sales is often right-skewed → log-transform may help
+
+clean_data$log_sales <- log1p(clean_data$Global_Sales)

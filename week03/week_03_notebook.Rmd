@@ -1,0 +1,219 @@
+---
+title: "week_03_total"
+output: html_document
+date: "2025-12-04"
+---
+
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(stringr)
+
+dat = read.csv("health_extended.csv", header = TRUE, sep=";")
+```
+
+
+
+```{r}
+# Filter & keep needed columns
+dat_focused <- dat |> 
+  filter(X2_variable_attribute_label != "Total",
+         X3_variable_attribute_label != "Total",
+         X4_variable_attribute_label != "Total") |> 
+  select(time, X2_variable_attribute_label, X3_variable_attribute_label, X4_variable_attribute_label, value)
+
+# Total per year
+total_by_year <- aggregate(dat_focused["value"], by = list(time = dat_focused$time), FUN = sum)
+names(total_by_year) <- c("time", "total")
+
+# Total per year & gender
+total_by_year_and_gender <- aggregate(value ~ time + X2_variable_attribute_label, data = dat_focused, FUN = sum)
+names(total_by_year_and_gender) <- c("time", "gender", "count")
+
+# Combine male, female, and total into one dataset
+plot_data <- total_by_year_and_gender |>
+  bind_rows(
+    total_by_year |>
+      mutate(gender = "Total", count = total) |>
+      select(time, gender, count)
+  )
+
+# Plot: male, female, and total as lines on one plot
+total_cases_plot <- ggplot(plot_data, aes(x = time, y = count, color = gender, group = gender)) +
+  geom_line(linewidth = 1) +
+  scale_y_continuous(expand = expansion(mult = 0), limits = c(0, NA)) +
+  labs(
+    x = "Year",
+    y = "Patients admitted for cancer",
+    color = "Group"
+  ) +
+  theme_minimal()
+
+ggsave("plots/total_cases.png", total_cases_plot, dpi = 1000, width = 8.74, height = 5.11)
+total_cases_plot
+  
+  
+
+
+
+
+
+total_by_year_and_age <- aggregate(dat_focused["value"], by = list(time = dat_focused$time, dat_focused$X3_variable_attribute_label), FUN = sum)
+
+age_groups_years_plot <- ggplot(total_by_year_and_age, aes(time, value, color=Group.2)) +
+  geom_line() +
+  labs(
+    x = "Year",
+    y = "Patients admitted for cancer",
+    color = "Group"
+  ) +
+  theme_minimal()
+  
+  ggsave("plots/age_groups_per_year.png", age_groups_years_plot, dpi = 1000, width = 8.74, height = 5.11)
+  age_groups_years_plot
+```
+
+
+
+## 1. Define desired brackets
+
+```{r}
+
+brackets <- data.frame(
+  bracket = c("15-20", "20-25", "25-30", "30-35", "35-40", "40-45",
+              "45-50", "50-55", "55-60", "60-65", "65-70", "70-75"),
+  lower = c(15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70),
+  upper = c(20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75)
+)
+
+admittance_groups_2024 <- total_by_year_and_age |>
+  filter(time == 2024) |>        # Keep only 2024
+  group_by(Group.2) |>   # Group by age
+  summarise(total = sum(value, na.rm = TRUE)) |> # Sum counts per age
+  as.data.frame()
+  
+admittance_groups_2024$lower_age <- as.numeric(str_extract(admittance_groups_2024$Group.2, "^\\d+"))
+
+# Map lower_age to your brackets
+admittance_groups_2024$bracket <- cut(
+  admittance_groups_2024$lower_age,
+  breaks = c(brackets$lower, max(brackets$upper)),
+  right = FALSE,
+  labels = brackets$bracket
+)
+
+
+```
+
+
+## Population Pyramid Data
+
+
+```{r}
+#population_counts <- c(15585942, 20261235,	22245996,	19429128,	6036938)
+population_df <- read.csv("pyramid_formatted.csv", header=TRUE, sep = ";")
+
+population_df$lower_age <- as.numeric(str_extract(population_df$t_brackets, "^\\d+"))
+
+# Map lower_age to your brackets
+population_df$bracket <- cut(
+  population_df$lower_age,
+  breaks = c(brackets$lower, max(brackets$upper)),
+  right = FALSE,
+  labels = brackets$bracket
+)
+
+
+
+```
+
+## Plot nicely
+
+```{r}
+totals_clean <- admittance_groups_2024 %>%
+  filter(!is.na(bracket)) %>%
+  mutate(type = "Patients admitted",
+         percent = total / sum(total) * 100) %>%
+  select(bracket, percent, type)
+
+population_clean <- population_df %>%
+  filter(!is.na(bracket)) %>%
+  mutate(type = "Population",
+         percent = t_count / sum(t_count) * 100) %>%
+  select(bracket, percent, type)
+
+# Combine datasets
+plot_df <- bind_rows(totals_clean, population_clean)
+
+# Keep bracket order
+plot_df$bracket <- factor(plot_df$bracket, levels = brackets$bracket)
+
+# Plot relative percentages
+comparison_plot <- ggplot(plot_df, aes(x = bracket, y = percent, fill = type)) +
+  geom_col(position = "dodge") +
+  labs(
+    x = "Age bracket",
+    y = "Percentage of total",
+    fill = "Group"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave("plots/comparison_plot.png", comparison_plot, dpi=1000, width = 8.74, height = 5.11)
+comparison_plot
+```
+```{r}
+
+# 1️⃣ Aggregate totals per bracket to remove duplicates
+admittance_clean <- admittance_groups_2024 %>%
+  group_by(bracket) %>%
+  summarise(total = sum(total, na.rm = TRUE)) %>%
+  ungroup()
+
+population_clean <- population_df %>%
+  group_by(bracket) %>%
+  summarise(t_count = sum(t_count, na.rm = TRUE)) %>%
+  ungroup()
+
+# 2️⃣ Keep only brackets that exist in your predefined brackets
+admittance_clean <- admittance_clean %>%
+  filter(bracket %in% brackets$bracket)
+
+population_clean <- population_clean %>%
+  filter(bracket %in% brackets$bracket)
+
+# 3️⃣ Ensure both are in the same bracket order
+admittance_clean <- admittance_clean %>%
+  arrange(factor(bracket, levels = brackets$bracket))
+
+population_clean <- population_clean %>%
+  arrange(factor(bracket, levels = brackets$bracket))
+
+# 4️⃣ Merge by bracket
+chi_df <- merge(admittance_clean, population_clean, by = "bracket", all = FALSE)
+
+# 5️⃣ Perform chi-square goodness-of-fit test
+observed <- chi_df$total
+expected_proportions <- chi_df$t_count / sum(chi_df$t_count)
+
+chisq_result <- chisq.test(x = observed, p = expected_proportions)
+
+# 6️⃣ View results
+chisq_result
+```
+
+
+
+```{r}
+#creating contingency table based on age and year
+cont_table_ages = ftable(xtabs(value ~ Group.2+time, data=total_by_year_and_age))
+
+#creating expected probability distribution for cancers where it is assumed that each age group is equally likely to suffer from cancer
+expected_probability_table = matrix(1/22, 22, 25)
+
+#performing a chi squared test
+chisq.test(x = cont_table_ages, p = expected_probability_table) 
+# I guess the null hypothesis is so very rejected lol
+```
+

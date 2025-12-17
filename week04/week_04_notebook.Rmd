@@ -11,8 +11,8 @@ library(patchwork)
 library(ggplot2)
 
 # Change this to your week 4 folder
-setwd(r"(C:/Users/Valentin/Documents/GIT_REPS/TUHH/Applied-Statistics/week04)")
-
+#setwd(r"(C:/Users/Valentin/Documents/GIT_REPS/TUHH/Applied-Statistics/week04)")
+setwd(r"(C:\AsAd\Python_Related\Applied_Statistics\AppliedStatistics\week04)")
 ```
 
 Note that when saving images, do it with this ratio to fit perfectly into the TUHH template:
@@ -29,7 +29,7 @@ clean_data <- video_game_data |>
   mutate(Year_of_Release = as.numeric(Year_of_Release)) |>
   select(where(is.numeric)) |>
   drop_na()
-
+View(clean_data)
 # Row index of the game with max sales
 max_index <- which.max(clean_data$Global_Sales)
 
@@ -58,7 +58,7 @@ long <- clean_data %>%
   pivot_longer(cols = c(User_Score, Critic_Score),
                names_to = "Type",
                values_to = "Score")
-
+view(long)
 distribution_plot <- ggplot(long, aes(x = Score, fill = Type)) +
   geom_density(alpha = 0.5) +
   scale_x_continuous(limits = c(0, 100)) +
@@ -115,7 +115,7 @@ The 2006 Outlier is Wii U Sports
 avg_year <- long %>%
   group_by(Year_of_Release, Type) %>%
   summarise(mean_score = mean(Score, na.rm = TRUE))
-
+view(avg)
 
 # Filter only User_Score
 long_user <- long %>% filter(Type == "User_Score")
@@ -306,3 +306,5 @@ survivorship bias
 Global_Sales is often right-skewed → log-transform may help
 
 clean_data$log_sales <- log1p(clean_data$Global_Sales)
+
+

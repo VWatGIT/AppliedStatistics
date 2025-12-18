@@ -153,17 +153,18 @@ score_over_year_plot
 ## Model
 
 $$
-Y = \beta_1 \cdot X_1 \cdot \beta_2 \cdot X_2 + \beta_3 \cdot X_3 + \epsilon
+Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_3 + \varepsilon
 $$
-
-where
-
+$$
 \begin{align*}
+where\\
 Y & : \text{User Score} \\
 X_1 & : \text{Critic Score} \\
 X_2 & : \text{Year of Release} \\
-X_3 & : \text{Global Sales}
+X_3 & : \text{Global Sales} \\
+\varepsilon & : \text{Random error term}
 \end{align*}
+$$
 
 ```{r}
 model <- lm(User_Score ~ ., data = clean_data)

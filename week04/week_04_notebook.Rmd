@@ -1,10 +1,13 @@
 ---
 title: "Fitting A Linear Model"
 output: html_notebook
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
-
 ## Setup
+
 ```{r}
 library(tidyverse)
 library(patchwork) 
@@ -15,11 +18,13 @@ library(ggplot2)
 setwd(r"(C:\AsAd\Python_Related\Applied_Statistics\AppliedStatistics\week04)")
 ```
 
-Note that when saving images, do it with this ratio to fit perfectly into the TUHH template:
- 
+Note that when saving images, do it with this ratio to fit perfectly
+into the TUHH template:
+
 width = 8.74, height = 5.11
 
 ## Import Data
+
 ```{r}
 video_game_data <- read.csv("Video_Games_Sales_as_at_22_Dec_2016.csv")
 
@@ -29,7 +34,7 @@ clean_data <- video_game_data |>
   mutate(Year_of_Release = as.numeric(Year_of_Release)) |>
   select(where(is.numeric)) |>
   drop_na()
-View(clean_data)
+
 # Row index of the game with max sales
 max_index <- which.max(clean_data$Global_Sales)
 
@@ -58,7 +63,7 @@ long <- clean_data %>%
   pivot_longer(cols = c(User_Score, Critic_Score),
                names_to = "Type",
                values_to = "Score")
-view(long)
+
 distribution_plot <- ggplot(long, aes(x = Score, fill = Type)) +
   geom_density(alpha = 0.5) +
   scale_x_continuous(limits = c(0, 100)) +
@@ -91,6 +96,7 @@ dev.off()
 ```
 
 ## Year of Release and Global Sales
+
 ```{r}
 
 sales_release_plot <- ggplot(clean_data, aes(x = Year_of_Release, y = Global_Sales)) +
@@ -105,10 +111,13 @@ ggsave("plots/sales_release_plot.png", sales_release_plot, width = 8.74, height 
 
 sales_release_plot
 ```
-Incomplete List of Games, Most Games are not on there, such as the Pc version of Minecraft missing and the list only including games up to 2016
-The 2006 Outlier is Wii U Sports
+
+Incomplete List of Games, Most Games are not on there, such as the Pc
+version of Minecraft missing and the list only including games up to
+2016 The 2006 Outlier is Wii U Sports
 
 ## Rating per Year and Sales
+
 ```{r}
 
 # Compute average per year
@@ -141,15 +150,11 @@ score_over_year_plot
 
 ```
 
-
-
-
-
 ## Model
 
-\[
+$$
 Y = \beta_1 \cdot X_1 \cdot \beta_2 \cdot X_2 + \beta_3 \cdot X_3 + \epsilon
-\]
+$$
 
 where
 
@@ -159,8 +164,6 @@ X_1 & : \text{Critic Score} \\
 X_2 & : \text{Year of Release} \\
 X_3 & : \text{Global Sales}
 \end{align*}
-
-
 
 ```{r}
 model <- lm(User_Score ~ ., data = clean_data)
@@ -172,26 +175,21 @@ summary(model)
 plot(model)
 ```
 
-
 ## ChatGPT Analysis
 
-This is the summary of a multiple linear regression where you model User_Score using all other variables in clean_data:
+This is the summary of a multiple linear regression where you model
+User_Score using all other variables in clean_data:
 
-User_Score
-∼
-Critic_Score
-+
-Year_of_Release
-+
-Global_Sales
+User_Score ∼ Critic_Score + Year_of_Release + Global_Sales
 User_Score∼Critic_Score+Year_of_Release+Global_Sales
 
-I’ll break it down piece by piece and then interpret it in plain language.
+I’ll break it down piece by piece and then interpret it in plain
+language.
 
-1️⃣ Model fit (big picture)
-R-squared = 0.3985
+1️⃣ Model fit (big picture) R-squared = 0.3985
 
-About 40% of the variation in User_Score is explained by the three predictors.
+About 40% of the variation in User_Score is explained by the three
+predictors.
 
 This is moderate explanatory power for real-world data.
 
@@ -199,19 +197,13 @@ Adjusted R-squared = 0.3982
 
 Very close to R² → adding predictors is justified.
 
-F-statistic (p < 2.2e-16)
+F-statistic (p \< 2.2e-16)
 
 The model as a whole is highly statistically significant
 
 At least one predictor meaningfully explains User_Score
 
-2️⃣ Residuals (errors)
-Min   -6.76
-1Q    -0.54
-Median 0.14
-3Q     0.72
-Max    3.89
-
+2️⃣ Residuals (errors) Min -6.76 1Q -0.54 Median 0.14 3Q 0.72 Max 3.89
 
 Errors are centered close to 0 → good
 
@@ -219,10 +211,8 @@ Slight right skew (larger positive max)
 
 Typical prediction error ≈ ±1.1 User_Score points
 
-3️⃣ Coefficients (core interpretation)
-🔹 Intercept: 169.9
-(Intercept) = 169.9
-
+3️⃣ Coefficients (core interpretation) 🔹 Intercept: 169.9 (Intercept) =
+169.9
 
 The predicted User_Score when:
 
@@ -234,43 +224,37 @@ Global_Sales = 0
 
 Not meaningful in practice, but necessary for the model.
 
-🔹 Critic_Score: +0.061
-Estimate = 0.061
-p < 2e-16
-
+🔹 Critic_Score: +0.061 Estimate = 0.061 p \< 2e-16
 
 📈 Interpretation:
 
-For every 1-point increase in Critic_Score,
-User_Score increases by ~0.06 points, holding other variables constant.
+For every 1-point increase in Critic_Score, User_Score increases by
+\~0.06 points, holding other variables constant.
 
 Very strong and significant predictor.
 
-🔹 Year_of_Release: −0.083
-Estimate = -0.083
-p < 2e-16
-
+🔹 Year_of_Release: −0.083 Estimate = -0.083 p \< 2e-16
 
 📉 Interpretation:
 
 Each additional year is associated with a 0.083 decrease in User_Score.
 
-Suggests older games have slightly higher user scores (possible nostalgia or selection bias).
+Suggests older games have slightly higher user scores (possible
+nostalgia or selection bias).
 
 Statistically very strong.
 
-🔹 Global_Sales: −0.037
-Estimate = -0.037
-p = 1.46e-07
-
+🔹 Global_Sales: −0.037 Estimate = -0.037 p = 1.46e-07
 
 📉 Interpretation:
 
-For each additional million units sold, User_Score drops by ~0.037 points.
+For each additional million units sold, User_Score drops by \~0.037
+points.
 
 Small effect, but statistically significant.
 
-Could reflect popular games appealing to broader (not more critical) audiences.
+Could reflect popular games appealing to broader (not more critical)
+audiences.
 
 4️⃣ Statistical significance
 
@@ -288,10 +272,10 @@ Critic_Score matters much more than Global_Sales.
 
 5️⃣ What this model says in plain English
 
-User ratings are strongly aligned with critic ratings.
-Older games tend to receive slightly higher user scores.
-Higher sales are weakly associated with lower user scores.
-The model explains about 40% of user score variability.
+User ratings are strongly aligned with critic ratings. Older games tend
+to receive slightly higher user scores. Higher sales are weakly
+associated with lower user scores. The model explains about 40% of user
+score variability.
 
 6️⃣ Important caveats
 
@@ -307,4 +291,89 @@ Global_Sales is often right-skewed → log-transform may help
 
 clean_data$log_sales <- log1p(clean_data$Global_Sales)
 
+## The following code and text helps cover the part of the assignment that asks to assess the Nature of randomness underlying the error terms:
 
+```{r}
+# Extract residuals and fitted values
+residuals <- resid(model)
+fitted_values <- fitted(model)
+mean(residuals)
+```
+What to put in the Presentation slides:
+Title:Mean of Residuals
+
+Mean of residuals: 2.63 × 10⁻¹⁵ (≈ 0)
+
+Numerical zero due to floating-point precision
+
+Confirms 𝐸(𝜀)=0
+
+Model does not systematically over- or under-predict
+
+Supports unbiased error assumption
+
+What to say for this slide:
+The mean residual is essentially zero, which confirms that the unexplained variation in the model is centered around zero. This means the model is unbiased on average.
+
+Since the residuals are centered around zero on average, the next step is to check whether they behave randomly across the range of fitted values and whether their variance remains constant.
+
+
+
+```{r}
+residuals_vs_fitted_values_plot <- ggplot(data.frame(fitted_values, residuals),
+       aes(x = fitted_values, y = residuals)) +
+  geom_point(alpha = 0.3) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    x = "Fitted Values",
+    y = "Residuals",
+    title = "Residuals vs Fitted Values"
+  ) +
+  theme_minimal()
+ggsave("plots/residuals_vs_fitted_values.png", residuals_vs_fitted_values_plot, width = 8.74, height = 5.11, dpi = 300)
+```
+What to put in the Presentation slide:
+Title: Randomness & homoscedasticity
+
+[Picture of the graph]
+
+Residuals centered around zero
+
+No clear nonlinear pattern
+
+Variance decreases with fitted values
+
+Funnel shape → heteroscedasticity
+
+Linear trend reasonable; inference with caution
+
+What to say for this slide:
+This plot shows the residuals plotted against the fitted values. The residuals are centered around zero and show no clear nonlinear pattern, which supports the linearity assumption. However, the spread of the residuals decreases as the fitted values increase, forming a funnel shape. This indicates heteroscedasticity, meaning the error variance is not constant. Despite this, the errors still appear random around zero, so the model remains useful for explanatory purposes.
+
+So overall, the linear structure is appropriate, but the non-constant variance should be kept in mind when interpreting the results
+
+```{r}
+png("plots/qqplot_residuals.png", width = 8.74 * 300, height = 5.11 * 300, res = 300 )
+qqnorm(residuals, main = "QQ Plot of Residuals")
+qqline(residuals, col = "red")
+dev.off()
+```
+What to put in the Presentation slide:
+Title: Normality of the error terms
+
+[Picture of the graph]
+
+Assessment of normality of error terms
+
+Residuals follow reference line closely
+
+Mild deviations in the tails
+
+Normality assumption approximately satisfied
+
+Suitable for inference in large samples
+
+What to say for this slide:
+The Q–Q plot is used to assess whether the residuals follow a normal distribution. Here, the residuals lie close to the reference line, with only mild deviations in the tails. This suggests that the normality assumption for the error terms is approximately satisfied. Given the large sample size, these small deviations are not a major concern for inference.
+
+Together with the mean residual and residuals vs fitted plots, this confirms that the main assumptions of the linear model are reasonably satisfied.

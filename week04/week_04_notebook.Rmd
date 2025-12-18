@@ -124,7 +124,6 @@ version of Minecraft missing and the list only including games up to
 avg_year <- long %>%
   group_by(Year_of_Release, Type) %>%
   summarise(mean_score = mean(Score, na.rm = TRUE))
-view(avg)
 
 # Filter only User_Score
 long_user <- long %>% filter(Type == "User_Score")
@@ -170,8 +169,29 @@ $$
 model <- lm(User_Score ~ ., data = clean_data)
 
 summary(model)
+```
 
 
+```{r}
+#Getting model coefficients and P values
+
+round(summary(model)$coefficients[, c("Estimate", "Pr(>|t|)")],4)
+```
+$$
+\[
+\begin{array}{l r r}
+\text{Coefficient} & \text{Estimate} & \text{p-value} \\
+\hline
+\text{Intercept} & 1699.0412 & 0 \\
+\text{Critic\_Score} & 0.6117 & 0 \\
+\text{Year\_of\_Release} & -0.8318 & 0 \\
+\text{Global\_Sales} & -0.3728 & 0 \\
+\end{array}
+\]
+$$
+
+
+```{r}
 # Dont know how relevant this is
 plot(model)
 ```
